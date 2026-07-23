@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Script: bootstrap.sh
+# Ponto de entrada para automação e configuração de servidores Linux.
+# ==============================================================================
+
+# Modo Estrito: Esbarra e para em qualquer erro
+set -euo pipefail
+
+# --- Variáveis Globais e Configurações ---
+LOG_DIR="./logs"
+LOG_FILE="${LOG_DIR}/bootstrap_$(date +'%Y%m%d_%H%M%S').log"
+
+# Garante a existência do diretório de logs (Idempotente)
+mkdir -p "${LOG_DIR}"
+
+# Redireciona toda a saída (stdout e stderr) para o terminal e para o arquivo de log
+exec > >(tee -a "${LOG_FILE}") 2>&1
+
+# --- Início da Execução ---
+echo "=================================================="
+echo " Starting Server Bootstrap"
+echo " Date: $(date)"
+echo " Log file: ${LOG_FILE}"
+echo "=================================================="
+
+echo "[INFO] Verificando dependências de sistema..."
+
+# Exemplo de comando idempotente: só instala se o apt-get existir
+if command -v apt-get &> /dev/null; then
+    echo "[INFO] Sistema baseado em Debian/Ubuntu detectado. Atualizando pacotes..."
+    sudo apt-get update -y
+fi
+
+# --- Execução dos Módulos ---
+echo "[INFO] Executando Módulo 1: Segurança..."
+./modules/01_security.sh
+
+echo "[INFO] Executando Módulo 2: Docker..."
+./modules/02_docker.sh
+
+
+# --- Conclusão ---
+echo "=================================================="
+echo " Bootstrap finalizado com sucesso!"
+echo "=================================================="
