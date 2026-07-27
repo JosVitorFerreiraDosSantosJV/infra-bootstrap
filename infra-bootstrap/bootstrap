@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Script: bootstrap.sh
-# Ponto de entrada para automação e configuração de servidores Linux.
+# Ponto de entrada principal para automação e configuração de servidores Linux.
 # ==============================================================================
 
 # Modo Estrito: Esbarra e para em qualquer erro
@@ -17,9 +17,20 @@ mkdir -p "${LOG_DIR}"
 # Redireciona toda a saída (stdout e stderr) para o terminal e para o arquivo de log
 exec > >(tee -a "${LOG_FILE}") 2>&1
 
+# --- Carregar Configurações (Fase 4) ---
+CONFIG_FILE="./config/env.sh"
+if [ -f "${CONFIG_FILE}" ]; then
+    echo "[INFO] Carregando arquivo de configuração: ${CONFIG_FILE}"
+    source "${CONFIG_FILE}"
+else
+    echo "[ERRO] Arquivo de configuração '${CONFIG_FILE}' não encontrado!"
+    echo "[ERRO] Crie o arquivo config/env.sh antes de continuar."
+    exit 1
+fi
+
 # --- Início da Execução ---
 echo "=================================================="
-echo " Starting Server Bootstrap"
+echo " Starting Server Bootstrap (${APP_ENV:-development})"
 echo " Date: $(date)"
 echo " Log file: ${LOG_FILE}"
 echo "=================================================="
@@ -32,13 +43,23 @@ if command -v apt-get &> /dev/null; then
     sudo apt-get update -y
 fi
 
-# --- Execução dos Módulos ---
-echo "[INFO] Executando Módulo 1: Segurança..."
-./modules/01_security.sh
+# --- Execução dos Módulos (Orientados por Configuração) ---
 
-echo "[INFO] Executando Módulo 2: Docker..."
-./modules/02_docker.sh
+# Módulo 1: Segurança
+if [ "${ENABLE_FIREWALL:-true}" = true ]; then
+    echo "[INFO] Executando Módulo 1: Segurança..."
+    ./modules/01_security.sh
+else
+    echo "[SKIP] Módulo de Segurança desativado nas configurações."
+fi
 
+# Módulo 2: Docker
+if [ "${ENABLE_DOCKER:-true}" = true ]; then
+    echo "[INFO] Executando Módulo 2: Docker..."
+    ./modules/02_docker.sh
+else
+    echo "[SKIP] Módulo Docker desativado nas configurações."
+fi
 
 # --- Conclusão ---
 echo "=================================================="
